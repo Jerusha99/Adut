@@ -1,0 +1,14 @@
+{
+  "name": "videograb-pro",
+  "version": "2.0.0",
+  "description": "Advanced Video Downloader Dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "uuid": "^9.0.0"
+  }
+}

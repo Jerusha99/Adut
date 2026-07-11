@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VideoGrab Pro - Video Downloader</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="bg-effects">
+        <div class="bg-orb"></div>
+        <div class="bg-orb"></div>
+        <div class="bg-orb"></div>
+    </div>
+    <div class="grid-bg"></div>
+
+    <div class="app">
+        <nav class="navbar">
+            <a class="logo" href="/">
+                <div class="logo-icon">VG</div>
+                <span class="logo-text">VideoGrab Pro</span>
+            </a>
+            <div class="nav-stats">
+                <div class="nav-stat">
+                    <span class="nav-stat-value" id="statDownloads">0</span>
+                    <span class="nav-stat-label">Downloads</span>
+                </div>
+                <div class="nav-stat">
+                    <span class="nav-stat-value" id="statFormats">0</span>
+                    <span class="nav-stat-label">Formats</span>
+                </div>
+            </div>
+            <div class="nav-actions">
+                <button class="btn-icon" title="Clear history" onclick="localStorage.clear(); location.reload();">&#8635;</button>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <section class="hero">
+                <div class="hero-badge">System Online</div>
+                <h1>Download <span class="gradient">Any Video</span><br>In Seconds</h1>
+                <p>Paste a video URL, pick your quality, and download. Powered by yt-dlp supporting 1000+ sites.</p>
+            </section>
+
+            <section class="search-section">
+                <div class="search-container">
+                    <div class="search-box">
+                        <span class="search-icon">&#8981;</span>
+                        <input id="searchInput" class="search-input" type="text"
+                               placeholder="Paste a video URL here..." autocomplete="off" spellcheck="false">
+                        <button class="paste-btn" id="pasteBtn">Paste</button>
+                        <button class="search-btn" id="searchBtn">
+                            <span class="btn-text">Analyze</span>
+                            <div class="spinner"></div>
+                        </button>
+                    </div>
+                    <div class="search-hint">
+                        Press <kbd>Enter</kbd> to analyze
+                        <span style="margin-left: 12px; color: var(--text-muted); font-size: 12px;">
+                            Status: <span id="systemStatus" style="font-weight: 600; color: var(--accent);">Checking...</span>
+                        </span>
+                    </div>
+                    <div class="supported-sites">
+                        <div class="site-chip"><span class="dot"></span>Pornhub</div>
+                        <div class="site-chip"><span class="dot"></span>XVideos</div>
+                        <div class="site-chip"><span class="dot"></span>XNXX</div>
+                        <div class="site-chip"><span class="dot"></span>XHamster</div>
+                        <div class="site-chip"><span class="dot"></span>RedTube</div>
+                        <div class="site-chip"><span class="dot"></span>1000+ more</div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="dashboard" class="dashboard">
+                <div class="dash-grid">
+                    <div class="card preview-section preview-card">
+                        <div class="card-header">
+                            <div class="card-icon purple">&#9654;</div>
+                            <div>
+                                <div class="card-title">Video Preview</div>
+                                <div class="card-subtitle" id="formatCount">0 quality options</div>
+                            </div>
+                        </div>
+                        <div class="video-preview">
+                            <img id="previewImg" src="" alt="Thumbnail" style="display:none;">
+                            <div class="no-preview" id="noPreview">
+                                <div class="icon">&#9654;</div>
+                                <p>No preview available</p>
+                            </div>
+                        </div>
+                        <div class="video-meta">
+                            <div class="video-title" id="videoTitle">-</div>
+                            <div class="meta-row">
+                                <span class="meta-label">Channel:</span>
+                                <span class="meta-value" id="uploader">-</span>
+                            </div>
+                            <div class="meta-row">
+                                <span class="meta-label">Duration:</span>
+                                <span class="meta-value" id="duration">--</span>
+                            </div>
+                            <div class="video-url-display" id="videoUrl">-</div>
+                        </div>
+                    </div>
+
+                    <div class="card formats-section">
+                        <div class="card-header">
+                            <div class="card-icon cyan">&#9776;</div>
+                            <div>
+                                <div class="card-title">MP4 Quality Options</div>
+                                <div class="card-subtitle" id="statusBadge" style="color:var(--text-muted)">Waiting...</div>
+                            </div>
+                        </div>
+                        <div class="format-list" id="formatList">
+                            <div class="empty-state">
+                                <div class="icon">&#128193;</div>
+                                <p>Paste a URL and click Analyze</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card actions-section">
+                        <div class="card-header">
+                            <div class="card-icon green">&#8595;</div>
+                            <div>
+                                <div class="card-title">Download Info</div>
+                                <div class="card-subtitle">Session statistics</div>
+                            </div>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Available Qualities</span>
+                            <span class="stat-value" id="totalFormats">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Total Downloads</span>
+                            <span class="stat-value" id="statDownloads2">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Format</span>
+                            <span class="stat-value">MP4 Only</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Qualities</span>
+                            <span class="stat-value">144p - 1080p</span>
+                        </div>
+                    </div>
+
+                    <div class="card" style="grid-column: 1 / -1;">
+                        <div class="card-header">
+                            <div class="card-icon pink">&#9716;</div>
+                            <div>
+                                <div class="card-title">Recent History</div>
+                                <div class="card-subtitle">Click to re-analyze</div>
+                            </div>
+                        </div>
+                        <div class="history-list" id="historyList">
+                            <div class="empty-state">
+                                <div class="icon">&#9654;</div>
+                                <p>No history yet</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+    <script src="app.js"></script>
+</body>
+</html>
