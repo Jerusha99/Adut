@@ -1,6 +1,6 @@
 {
   "version": 2,
   "outputDirectory": "public",
-  "installCommand": "echo 'No install needed'",
-  "buildCommand": "echo 'No build needed'"
+  "installCommand": "npm install --ignore-scripts",
+  "buildCommand": "echo done"
 }
