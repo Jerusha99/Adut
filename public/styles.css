@@ -470,21 +470,20 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    background: rgba(0, 0, 0, 0.65);
     z-index: 2;
     transition: opacity 0.5s ease;
+    backdrop-filter: blur(2px);
 }
 .ad-video-placeholder.hidden {
     opacity: 0;
     pointer-events: none;
 }
 .ad-countdown {
-    font-size: 64px;
+    font-size: 72px;
     font-weight: 900;
-    background: var(--accent-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #fff;
+    text-shadow: 0 0 30px rgba(139,92,246,0.8), 0 0 60px rgba(139,92,246,0.4);
     font-family: 'JetBrains Mono', monospace;
     animation: countPulse 1s ease-in-out infinite;
 }

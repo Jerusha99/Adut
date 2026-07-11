@@ -192,6 +192,27 @@ const App = {
         }
 
         const modal = document.getElementById('rewardedModal');
+        const contentArea = document.getElementById('adContentArea');
+
+        const affiliates = [
+            { img: 'https://placehold.co/640x360/1a1a2e/ff6b9d?text=LIVE+CAMS+NOW', url: 'https://www.chaturbate.com/in/?track=default&c_=landing_page_5', label: 'Live Cams' },
+            { img: 'https://placehold.co/640x360/1a1a2e/8b5cf6?text=PREMIUM+SHOWS', url: 'https://www.livejasmin.com/?ref=8026538&clickurl=//www.livejasmin.com/webcamModelGalleryPage.html', label: 'Premium Shows' },
+            { img: 'https://placehold.co/640x360/1a1a2e/06b6d4?text=FIND+LOCAL+DATES', url: 'https://www.flirt4free.com/?s=1&a=113435', label: 'Dating' },
+            { img: 'https://placehold.co/640x360/1a1a2e/ec4899?text=HOT+SINGLES+NEAR+YOU', url: 'https://www.chaturbate.com/in/?track=default&c_=landing_page_5', label: 'Meet Singles' },
+        ];
+        const ad = affiliates[Math.floor(Math.random() * affiliates.length)];
+
+        contentArea.innerHTML = `
+            <a href="${ad.url}" target="_blank" rel="noopener" style="display:block;width:100%;height:100%;">
+                <img src="${ad.img}" alt="${ad.label}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">
+            </a>
+            <div style="position:absolute;bottom:0;left:0;right:0;padding:8px 16px;background:linear-gradient(transparent, rgba(0,0,0,0.8));border-radius:0 0 12px 12px;text-align:center;">
+                <span style="color:#ff6b9d;font-weight:700;font-size:13px;">${ad.label}</span>
+                <span style="color:#888;font-size:11px;margin-left:8px;">Sponsored</span>
+            </div>
+        `;
+        contentArea.style.position = 'relative';
+
         modal.style.display = 'flex';
         this.startAdCountdown();
     },
