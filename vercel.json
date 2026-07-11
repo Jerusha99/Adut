@@ -12,11 +12,14 @@
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/index.py" },
+    { "src": "/health", "dest": "/api/index.py" },
     { "src": "/(.*)", "dest": "/public/$1" }
   ],
   "functions": {
     "api/index.py": {
-      "maxDuration": 30
+      "maxDuration": 30,
+      "includeFiles": "api/**"
     }
-  }
+  },
+  "outputDirectory": "public"
 }
