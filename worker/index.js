@@ -345,6 +345,35 @@ export default {
             }
         }
 
+        if (url.pathname === '/api/download' && request.method === 'GET') {
+            try {
+                const targetUrl = url.searchParams.get('url');
+                const filename = url.searchParams.get('filename') || 'video.mp4';
+                if (!targetUrl) return jsonResponse({ error: 'url param required' }, 400);
+
+                const resp = await fetch(decodeURIComponent(targetUrl), {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                        'Referer': 'https://www.google.com/',
+                        'Accept': '*/*',
+                    },
+                    redirect: 'follow',
+                });
+
+                const newHeaders = new Headers({
+                    'Content-Type': 'video/mp4',
+                    'Content-Disposition': `attachment; filename="${filename}"`,
+                    'Access-Control-Allow-Origin': '*',
+                });
+                const cl = resp.headers.get('content-length');
+                if (cl) newHeaders.set('Content-Length', cl);
+
+                return new Response(resp.body, { status: resp.status, headers: newHeaders });
+            } catch {
+                return jsonResponse({ error: 'Download failed' }, 500);
+            }
+        }
+
         return jsonResponse({ error: 'Not found' }, 404);
     },
 };

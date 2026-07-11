@@ -237,9 +237,13 @@ const App = {
         localStorage.setItem('vg_downloads', this.stats.downloads);
         this.updateStats();
 
+        const safeName = this.currentData.title.replace(/[^a-zA-Z0-9\s\-_]/g, '').substring(0, 80) || 'video';
+        const filename = `${safeName}_${format.quality}.mp4`;
+        const downloadUrl = `${this.apiBase()}/api/download?url=${encodeURIComponent(format.url)}&filename=${encodeURIComponent(filename)}`;
+
         const link = document.createElement('a');
-        link.href = this.apiBase() + `/api/download/${this.pendingDownloadId}/${this.pendingFormatId}`;
-        link.download = '';
+        link.href = downloadUrl;
+        link.download = filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
