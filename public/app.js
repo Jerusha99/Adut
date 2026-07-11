@@ -291,14 +291,20 @@ const App = {
             const worker = async () => {
                 while (nextIdx < total) {
                     const idx = nextIdx++;
-                    try {
-                        const proxyUrl = this.apiBase() + '/api/proxy?url=' + encodeURIComponent(segments[idx]);
-                        const resp = await fetch(proxyUrl);
-                        if (resp.ok) {
-                            const ab = await resp.arrayBuffer();
-                            chunks[idx] = new Uint8Array(ab);
-                        }
-                    } catch (e) {}
+                    let success = false;
+                    for (let retry = 0; retry < 3 && !success; retry++) {
+                        try {
+                            const proxyUrl = this.apiBase() + '/api/proxy?url=' + encodeURIComponent(segments[idx]);
+                            const resp = await fetch(proxyUrl);
+                            if (resp.ok) {
+                                const ab = await resp.arrayBuffer();
+                                if (ab.byteLength > 0) {
+                                    chunks[idx] = new Uint8Array(ab);
+                                    success = true;
+                                }
+                            }
+                        } catch (e) { await new Promise(r => setTimeout(r, 500)); }
+                    }
                     completed++;
                     const pct = 10 + Math.floor((completed / total) * 85);
                     if (progressFill) progressFill.style.width = pct + '%';
@@ -314,6 +320,7 @@ const App = {
             if (progressText) progressText.textContent = 'Combining segments...';
 
             const validChunks = chunks.filter(c => c);
+            if (validChunks.length < total * 0.5) throw new Error('Too many segments failed to download');
             const totalSize = validChunks.reduce((s, c) => s + c.length, 0);
             const combined = new Uint8Array(totalSize);
             let offset = 0;
@@ -322,12 +329,12 @@ const App = {
                 offset += chunk.length;
             }
 
-            const blob = new Blob([combined], { type: 'video/mp4' });
+            const blob = new Blob([combined], { type: 'video/mp2t' });
             const blobUrl = URL.createObjectURL(blob);
 
             const link = document.createElement('a');
             link.href = blobUrl;
-            link.download = (this.currentData.title || 'video').replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 80) + '_' + format.quality + '.mp4';
+            link.download = (this.currentData.title || 'video').replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 80) + '_' + format.quality + '.ts';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
