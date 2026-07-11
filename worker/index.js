@@ -258,6 +258,8 @@ export default {
                 const usedQualities = new Set();
 
                 for (const rawUrl of result.urls) {
+                    if (rawUrl.includes('.m3u8') || rawUrl.includes('.m3u8?')) continue;
+
                     const q = classifyQuality(rawUrl);
                     const height = parseInt(q.quality) || 0;
 
@@ -267,7 +269,7 @@ export default {
                             id: formats.length,
                             quality: q.quality,
                             label: q.label,
-                            format: rawUrl.includes('.m3u8') ? 'HLS' : 'MP4',
+                            format: 'MP4',
                             url: rawUrl,
                         });
                     }
@@ -276,6 +278,9 @@ export default {
                 if (formats.length === 0) {
                     const seen = new Set();
                     for (const rawUrl of result.urls) {
+                        if (rawUrl.includes('.m3u8') || rawUrl.includes('.m3u8?')) continue;
+                        if (!rawUrl.includes('.mp4') && !rawUrl.includes('.webm') && !rawUrl.includes('.avi')) continue;
+
                         const q = classifyQuality(rawUrl);
                         const h = parseInt(q.quality) || 0;
                         if (!seen.has(rawUrl)) {
@@ -284,7 +289,7 @@ export default {
                                 id: formats.length,
                                 quality: h > 0 ? h + 'p' : 'Original',
                                 label: q.label,
-                                format: rawUrl.includes('.m3u8') ? 'HLS' : 'MP4',
+                                format: 'MP4',
                                 url: rawUrl,
                             });
                         }
@@ -310,7 +315,7 @@ export default {
                         id: f.id,
                         quality: f.quality,
                         label: f.label,
-                        format: f.format,
+                        format: 'MP4',
                         url: f.url,
                     })),
                 });
