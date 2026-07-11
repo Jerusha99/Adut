@@ -179,6 +179,19 @@ const App = {
 
     download(formatId) {
         if (!this.currentData) return;
+
+        const now = Date.now();
+        const downloads = JSON.parse(localStorage.getItem('vg_dl_timestamps') || '[]');
+        const recent = downloads.filter(t => now - t < 3600000);
+        if (recent.length >= 10) {
+            const mins = Math.ceil((recent[0] + 3600000 - now) / 60000);
+            this.showToast(`Daily limit reached! Try again in ${mins} minute${mins > 1 ? 's' : ''}`, 'error');
+            return;
+        }
+
+        recent.push(now);
+        localStorage.setItem('vg_dl_timestamps', JSON.stringify(recent));
+
         this.firePopunder();
         this.pendingDownloadId = this.currentData.downloadId;
         this.pendingFormatId = formatId;
@@ -494,6 +507,15 @@ const App = {
         if (el('statDownloads')) el('statDownloads').textContent = this.stats.downloads;
         if (el('statDownloads2')) el('statDownloads2').textContent = this.stats.downloads;
         if (el('statFormats')) el('statFormats').textContent = this.currentData ? this.currentData.formats.length : 0;
+
+        const now = Date.now();
+        const downloads = JSON.parse(localStorage.getItem('vg_dl_timestamps') || '[]');
+        const recent = downloads.filter(t => now - t < 3600000);
+        const remaining = Math.max(0, 10 - recent.length);
+        if (el('statRemaining')) {
+            el('statRemaining').textContent = remaining;
+            el('statRemaining').style.color = remaining <= 2 ? '#ef4444' : remaining <= 5 ? '#f59e0b' : '';
+        }
     },
 
     showToast(message, type = 'info') {
