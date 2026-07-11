@@ -1,13 +1,6 @@
 {
   "version": 2,
   "outputDirectory": "public",
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/index.py" },
-    { "src": "/(.*)", "dest": "/public/$1" }
-  ],
-  "functions": {
-    "api/index.py": {
-      "maxDuration": 30
-    }
-  }
+  "installCommand": "echo 'No install needed'",
+  "buildCommand": "echo 'No build needed'"
 }

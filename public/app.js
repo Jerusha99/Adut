@@ -16,9 +16,13 @@ const App = {
         this.checkHealth();
     },
 
+    apiBase() {
+        return window.APP_CONFIG && window.APP_CONFIG.API_URL ? window.APP_CONFIG.API_URL : '';
+    },
+
     async checkHealth() {
         try {
-            const r = await fetch('/api/health');
+            const r = await fetch(this.apiBase() + '/api/health');
             if (r.ok) {
                 const d = await r.json();
                 if (d.ytdlp) this.setStatus('System Ready', 'var(--success)');
@@ -69,7 +73,7 @@ const App = {
         document.getElementById('dashboard').classList.remove('active');
 
         try {
-            const resp = await fetch('/api/analyze', {
+            const resp = await fetch(this.apiBase() + '/api/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url }),
@@ -103,7 +107,7 @@ const App = {
         const img = document.getElementById('previewImg');
         const noPrev = document.getElementById('noPreview');
         if (data.thumbnail) {
-            img.src = '/api/proxy?url=' + encodeURIComponent(data.thumbnail);
+            img.src = this.apiBase() + '/api/proxy?url=' + encodeURIComponent(data.thumbnail);
             img.style.display = 'block';
             noPrev.style.display = 'none';
         } else {
@@ -234,7 +238,7 @@ const App = {
         this.updateStats();
 
         const link = document.createElement('a');
-        link.href = `/api/download/${this.pendingDownloadId}/${this.pendingFormatId}`;
+        link.href = this.apiBase() + `/api/download/${this.pendingDownloadId}/${this.pendingFormatId}`;
         link.download = '';
         document.body.appendChild(link);
         link.click();
@@ -293,7 +297,7 @@ const App = {
         list.innerHTML = this.history.map((item, i) => `
             <div class="history-item" style="animation: fadeInUp 0.3s ease-out ${i * 0.04}s both"
                  onclick="document.getElementById('searchInput').value='${item.url}'; App.analyze();">
-                <img class="history-thumb" src="${item.thumbnail ? '/api/proxy?url=' + encodeURIComponent(item.thumbnail) : ''}"
+                <img class="history-thumb" src="${item.thumbnail ? App.apiBase() + '/api/proxy?url=' + encodeURIComponent(item.thumbnail) : ''}"
                      onerror="this.style.display='none'" alt="">
                 <div class="history-info">
                     <div class="history-name">${this.esc(item.title)}</div>
