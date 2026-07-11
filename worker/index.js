@@ -1,282 +1,3 @@
-const SITES = {
-    pornhub: {
-        extract: (html) => {
-            const urls = [];
-            const titleMatch = html.match(/<title>([^<]+)<\/title>/);
-            const title = titleMatch ? titleMatch[1].replace(/ - Pornhub\.com/i, '').trim() : '';
-            const thumbMatch = html.match(/"thumbnailUrl"\s*:\s*"([^"]+)"/) || html.match(/"image_url"\s*:\s*"([^"]+)"/);
-            const thumb = thumbMatch ? thumbMatch[1] : '';
-
-            const isThumbnail = (u) => {
-                const lower = u.toLowerCase();
-                return lower.includes('/rs:fit:') || lower.includes('/plain/') ||
-                       lower.includes('/rs:fill:') || lower.includes('/rs:w:') ||
-                       lower.includes('/rs:h:') || lower.includes('.jpg') ||
-                       lower.includes('.png') || lower.includes('.gif') ||
-                       lower.includes('.webp') || lower.includes('thumbnail') ||
-                       lower.includes('/thumb') || lower.includes('/poster') ||
-                       lower.includes('vts:401') || lower.includes('vts:2000');
-            };
-
-            // Method 1: flashvars with video_url
-            const flashvarsMatch = html.match(/var\s+flashvars\s*=\s*\{([^}]+)\}/);
-            if (flashvarsMatch) {
-                const fv = flashvarsMatch[1];
-                const vu = fv.match(/"video_url"\s*:\s*"([^"]+)"/);
-                if (vu) {
-                    let u = vu[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/\\x2F/g, '/');
-                    if (!isThumbnail(u)) urls.push(u);
-                }
-                const vut = fv.match(/"video_url_text"\s*:\s*"([^"]+)"/);
-                if (vut) {
-                    let u = vut[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/\\x2F/g, '/');
-                    if (!isThumbnail(u)) urls.push(u);
-                }
-                const vu720 = fv.match(/"video_url_720p"\s*:\s*"([^"]+)"/);
-                if (vu720) {
-                    let u = vu720[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/\\x2F/g, '/');
-                    if (!isThumbnail(u)) urls.push(u);
-                }
-                const vu480 = fv.match(/"video_url_480p"\s*:\s*"([^"]+)"/);
-                if (vu480) {
-                    let u = vu480[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/\\x2F/g, '/');
-                    if (!isThumbnail(u)) urls.push(u);
-                }
-                const vu240 = fv.match(/"video_url_240p"\s*:\s*"([^"]+)"/);
-                if (vu240) {
-                    let u = vu240[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/\\x2F/g, '/');
-                    if (!isThumbnail(u)) urls.push(u);
-                }
-            }
-
-            // Method 2: Direct script patterns
-            const scriptPatterns = [
-                /flashvars\s*\[["']video_url["']\]\s*=\s*["']([^"']+)["']/g,
-                /flashvars\s*\[["']video_url_text["']\]\s*=\s*["']([^"']+)["']/g,
-                /video_url\s*[=:]\s*["']([^"']+\.mp4[^"']*)["']/gi,
-                /video_url\s*[=:]\s*["']([^"']+\.mp4[^"']*)["']/gi,
-            ];
-
-            for (const p of scriptPatterns) {
-                let m;
-                while ((m = p.exec(html)) !== null) {
-                    let u = (m[1]).replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/\\x2F/g, '/');
-                    if (!isThumbnail(u) && u.startsWith('http') && !urls.includes(u)) {
-                        urls.push(u);
-                    }
-                }
-            }
-
-            // Method 3: Find phncdn CDN mp4 URLs (actual videos, NOT thumbnails)
-            const cdnPattern = /https?:\/\/[a-z0-9\-]+\.phncdn\.com\/[^"'\s\\]*\.mp4[^"'\s\\]*/gi;
-            let cm;
-            while ((cm = cdnPattern.exec(html)) !== null) {
-                let u = cm[0].replace(/\\\//g, '/').replace(/\\x2F/g, '/');
-                if (!isThumbnail(u) && !urls.includes(u)) {
-                    urls.push(u);
-                }
-            }
-
-            // Method 4: Find ew-cf/ew-ncf pornhub CDN video URLs
-            const phCdnPattern = /https?:\/\/(?:ew-cf|ew-ncf|ci|dl)\.pornhub\.com\/[^"'\s\\]*\.mp4[^"'\s\\]*/gi;
-            let pm;
-            while ((pm = phCdnPattern.exec(html)) !== null) {
-                let u = pm[0].replace(/\\\//g, '/');
-                if (!isThumbnail(u) && !urls.includes(u)) {
-                    urls.push(u);
-                }
-            }
-
-            return { title, thumbnail: thumb, urls };
-        },
-    },
-    xvideos: {
-        extract: (html) => {
-            const urls = [];
-            const titleMatch = html.match(/<title>([^<]+)<\/title>/);
-            const title = titleMatch ? titleMatch[1].replace(/ - XVIDEOS\.COM/i, '').trim() : '';
-            const thumbMatch = html.match(/"thumbnailUrl"\s*:\s*"([^"]+)"/);
-            const thumb = thumbMatch ? thumbMatch[1] : '';
-
-            const isThumbnail = (u) => {
-                const lower = u.toLowerCase();
-                return lower.includes('.jpg') || lower.includes('.png') ||
-                       lower.includes('.gif') || lower.includes('.webp') ||
-                       lower.includes('thumbnail') || lower.includes('/thumb');
-            };
-
-            const patterns = [
-                /setVideoUrl\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
-                /html5player\.setVideoUrl\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
-                /video_url\s*[=:]\s*["']([^"']+)["']/g,
-                /setVideoTitle\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
-            ];
-
-            for (const p of patterns) {
-                let m;
-                while ((m = p.exec(html)) !== null) {
-                    let u = (m[1]).replace(/\\u002F/g, '/').replace(/\\\//g, '/');
-                    if (!isThumbnail(u) && u.startsWith('http') && !urls.includes(u)) {
-                        urls.push(u);
-                    }
-                }
-            }
-            return { title, thumbnail: thumb, urls };
-        },
-    },
-    xnxx: {
-        extract: (html) => {
-            const urls = [];
-            const titleMatch = html.match(/<title>([^<]+)<\/title>/);
-            const title = titleMatch ? titleMatch[1].replace(/ - XNXX\.COM/i, '').trim() : '';
-            const thumbMatch = html.match(/"thumbnailUrl"\s*:\s*"([^"]+)"/);
-            const thumb = thumbMatch ? thumbMatch[1] : '';
-
-            const isThumbnail = (u) => {
-                const lower = u.toLowerCase();
-                return lower.includes('.jpg') || lower.includes('.png') ||
-                       lower.includes('.gif') || lower.includes('.webp') ||
-                       lower.includes('thumbnail') || lower.includes('/thumb');
-            };
-
-            const patterns = [
-                /setVideoUrl\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
-                /html5player\.setVideoUrl\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
-                /video_url\s*[=:]\s*["']([^"']+)["']/g,
-            ];
-
-            for (const p of patterns) {
-                let m;
-                while ((m = p.exec(html)) !== null) {
-                    let u = (m[1]).replace(/\\u002F/g, '/').replace(/\\\//g, '/');
-                    if (!isThumbnail(u) && u.startsWith('http') && !urls.includes(u)) {
-                        urls.push(u);
-                    }
-                }
-            }
-            return { title, thumbnail: thumb, urls };
-        },
-    },
-    xhamster: {
-        extract: (html) => {
-            const urls = [];
-            const titleMatch = html.match(/<title>([^<]+)<\/title>/);
-            const title = titleMatch ? titleMatch[1].replace(/ - xHamster\.com/i, '').trim() : '';
-            const thumbMatch = html.match(/"thumbnailUrl"\s*:\s*"([^"]+)"/);
-            const thumb = thumbMatch ? thumbMatch[1] : '';
-
-            const isThumbnail = (u) => {
-                const lower = u.toLowerCase();
-                return lower.includes('.jpg') || lower.includes('.png') ||
-                       lower.includes('.gif') || lower.includes('.webp') ||
-                       lower.includes('thumbnail') || lower.includes('/thumb');
-            };
-
-            const patterns = [
-                /"videoUrl"\s*:\s*"([^"]+)"/g,
-                /data-video-url\s*=\s*["']([^"']+)["']/g,
-            ];
-
-            for (const p of patterns) {
-                let m;
-                while ((m = p.exec(html)) !== null) {
-                    let u = (m[1]).replace(/\\u002F/g, '/').replace(/\\\//g, '/');
-                    if (!isThumbnail(u) && u.startsWith('http') && !urls.includes(u)) {
-                        urls.push(u);
-                    }
-                }
-            }
-            return { title, thumbnail: thumb, urls };
-        },
-    },
-    redtube: {
-        extract: (html) => {
-            const urls = [];
-            const titleMatch = html.match(/<title>([^<]+)<\/title>/);
-            const title = titleMatch ? titleMatch[1].replace(/ - RedTube\.com/i, '').trim() : '';
-            const thumbMatch = html.match(/"thumbnailUrl"\s*:\s*"([^"]+)"/);
-            const thumb = thumbMatch ? thumbMatch[1] : '';
-
-            const isThumbnail = (u) => {
-                const lower = u.toLowerCase();
-                return lower.includes('.jpg') || lower.includes('.png') ||
-                       lower.includes('.gif') || lower.includes('.webp') ||
-                       lower.includes('thumbnail');
-            };
-
-            const patterns = [
-                /"video_url"\s*:\s*"([^"]+)"/g,
-                /video_url\s*[=:]\s*["']([^"']+)["']/g,
-            ];
-
-            for (const p of patterns) {
-                let m;
-                while ((m = p.exec(html)) !== null) {
-                    let u = (m[1]).replace(/\\u002F/g, '/').replace(/\\\//g, '/');
-                    if (!isThumbnail(u) && u.startsWith('http') && !urls.includes(u)) {
-                        urls.push(u);
-                    }
-                }
-            }
-            return { title, thumbnail: thumb, urls };
-        },
-    },
-    generic: {
-        extract: (html) => {
-            const urls = [];
-            const titleMatch = html.match(/<title>([^<]+)<\/title>/);
-            const title = titleMatch ? titleMatch[1].trim() : '';
-            const thumbMatch = html.match(/"thumbnailUrl"\s*:\s*"([^"]+)"/) || html.match(/"og:image"\s*content="([^"]+)"/);
-            const thumb = thumbMatch ? thumbMatch[1] : '';
-
-            const isThumbnail = (u) => {
-                const lower = u.toLowerCase();
-                return lower.includes('.jpg') || lower.includes('.png') ||
-                       lower.includes('.gif') || lower.includes('.webp') ||
-                       lower.includes('thumbnail') || lower.includes('/thumb') ||
-                       lower.includes('/rs:fit:');
-            };
-
-            const patterns = [
-                /"video_url"\s*:\s*"([^"]+)"/g,
-                /"videoUrl"\s*:\s*"([^"]+)"/g,
-                /video_url\s*[=:]\s*["']([^"']+)["']/g,
-            ];
-
-            for (const p of patterns) {
-                let m;
-                while ((m = p.exec(html)) !== null) {
-                    let u = (m[1]).replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/\\x2F/g, '/');
-                    if (!isThumbnail(u) && u.startsWith('http') && !urls.includes(u)) {
-                        urls.push(u);
-                    }
-                }
-            }
-            return { title, thumbnail: thumb, urls };
-        },
-    },
-};
-
-function getSiteExtractor(url) {
-    if (url.includes('pornhub')) return SITES.pornhub;
-    if (url.includes('xvideos')) return SITES.xvideos;
-    if (url.includes('xnxx')) return SITES.xnxx;
-    if (url.includes('xhamster')) return SITES.xhamster;
-    if (url.includes('redtube')) return SITES.redtube;
-    return SITES.generic;
-}
-
-function classifyQuality(url) {
-    const l = url.toLowerCase();
-    if (l.includes('1080') || l.includes('1920')) return { quality: '1080p', label: 'Full HD' };
-    if (l.includes('720') || l.includes('1280')) return { quality: '720p', label: 'HD' };
-    if (l.includes('480')) return { quality: '480p', label: 'SD' };
-    if (l.includes('360')) return { quality: '360p', label: '360p' };
-    if (l.includes('240')) return { quality: '240p', label: '240p' };
-    if (l.includes('144')) return { quality: '144p', label: '144p' };
-    return { quality: 'unknown', label: 'Original' };
-}
-
 const CORS = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -288,6 +9,311 @@ function jsonResponse(data, status = 200) {
         status,
         headers: { 'Content-Type': 'application/json', ...CORS },
     });
+}
+
+function cleanUrl(u) {
+    return u.replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/\\x2F/g, '/');
+}
+
+const HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.5',
+};
+
+function extractPornhub(html) {
+    const titleMatch = html.match(/<title>([^<]+)<\/title>/);
+    const title = titleMatch ? titleMatch[1].replace(/ - Pornhub\.com/i, '').trim() : '';
+    const thumbMatch = html.match(/"thumbnailUrl"\s*:\s*"([^"]+)"/) || html.match(/"image_url"\s*:\s*"([^"]+)"/);
+    const thumb = thumbMatch ? cleanUrl(thumbMatch[1]) : '';
+
+    const qualities = [];
+
+    const fvIdx = html.indexOf('"mediaDefinitions"');
+    if (fvIdx !== -1) {
+        const chunk = html.substring(fvIdx, fvIdx + 5000);
+        const mediaMatch = chunk.match(/"mediaDefinitions"\s*:\s*(\[.*?\])\s*,\s*"(?:isVertical|video_unavailable)/s);
+        if (mediaMatch) {
+            try {
+                const mediaArr = JSON.parse(mediaMatch[1].replace(/\\\//g, '/'));
+                for (const item of mediaArr) {
+                    if (item.format === 'hls' && item.videoUrl) {
+                        const q = parseInt(item.quality) || 0;
+                        if (q > 0) {
+                            qualities.push({
+                                quality: q,
+                                label: q >= 720 ? 'HD' : 'SD',
+                                m3u8: cleanUrl(item.videoUrl),
+                                format: 'HLS',
+                            });
+                        }
+                    }
+                }
+            } catch (e) {}
+        }
+    }
+
+    if (qualities.length === 0) {
+        const urls = [];
+        const patterns = [
+            /"videoUrl"\s*:\s*"([^"]+master\.m3u8[^"]*)"/gi,
+            /video_url\s*[=:]\s*["']([^"']+\.m3u8[^"']*)["']/gi,
+        ];
+        for (const p of patterns) {
+            let m;
+            while ((m = p.exec(html)) !== null) {
+                const u = cleanUrl(m[1]);
+                if (u.startsWith('http') && !urls.includes(u)) {
+                    urls.push(u);
+                    const qMatch = u.match(/(\d+)P/);
+                    const q = qMatch ? parseInt(qMatch[1]) : 0;
+                    qualities.push({
+                        quality: q,
+                        label: q >= 720 ? 'HD' : 'SD',
+                        m3u8: u,
+                        format: 'HLS',
+                    });
+                }
+            }
+        }
+    }
+
+    qualities.sort((a, b) => b.quality - a.quality);
+    qualities.forEach((q, i) => { q.id = i; });
+
+    return { title, thumbnail: thumb, qualities };
+}
+
+function extractXvideos(html) {
+    const titleMatch = html.match(/<title>([^<]+)<\/title>/);
+    const title = titleMatch ? titleMatch[1].replace(/ - XVIDEOS\.COM/i, '').trim() : '';
+    const thumbMatch = html.match(/"thumbnailUrl"\s*:\s*"([^"]+)"/);
+    const thumb = thumbMatch ? cleanUrl(thumbMatch[1]) : '';
+
+    const urls = [];
+    const patterns = [
+        /setVideoUrl\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
+        /html5player\.setVideoUrl\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
+    ];
+    for (const p of patterns) {
+        let m;
+        while ((m = p.exec(html)) !== null) {
+            const u = cleanUrl(m[1]);
+            if (u.startsWith('http') && !u.includes('.jpg') && !u.includes('.png') && !urls.includes(u)) {
+                urls.push(u);
+            }
+        }
+    }
+
+    const qualities = urls.map((u, i) => {
+        const qMatch = u.match(/(\d+p)/i);
+        const q = qMatch ? parseInt(qMatch[1]) : 0;
+        return { quality: q, label: q >= 720 ? 'HD' : 'SD', url: u, format: 'MP4', id: i };
+    });
+
+    return { title, thumbnail: thumb, qualities };
+}
+
+function extractXnxx(html) {
+    const titleMatch = html.match(/<title>([^<]+)<\/title>/);
+    const title = titleMatch ? titleMatch[1].replace(/ - XNXX\.COM/i, '').trim() : '';
+    const thumbMatch = html.match(/"thumbnailUrl"\s*:\s*"([^"]+)"/);
+    const thumb = thumbMatch ? cleanUrl(thumbMatch[1]) : '';
+
+    const urls = [];
+    const patterns = [
+        /setVideoUrl\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
+        /html5player\.setVideoUrl\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
+    ];
+    for (const p of patterns) {
+        let m;
+        while ((m = p.exec(html)) !== null) {
+            const u = cleanUrl(m[1]);
+            if (u.startsWith('http') && !u.includes('.jpg') && !u.includes('.png') && !urls.includes(u)) {
+                urls.push(u);
+            }
+        }
+    }
+
+    const qualities = urls.map((u, i) => {
+        const qMatch = u.match(/(\d+p)/i);
+        const q = qMatch ? parseInt(qMatch[1]) : 0;
+        return { quality: q, label: q >= 720 ? 'HD' : 'SD', url: u, format: 'MP4', id: i };
+    });
+
+    return { title, thumbnail: thumb, qualities };
+}
+
+function extractXhamster(html) {
+    const titleMatch = html.match(/<title>([^<]+)<\/title>/);
+    const title = titleMatch ? titleMatch[1].replace(/ - xHamster\.com/i, '').trim() : '';
+    const thumbMatch = html.match(/"thumbnailUrl"\s*:\s*"([^"]+)"/);
+    const thumb = thumbMatch ? cleanUrl(thumbMatch[1]) : '';
+
+    const urls = [];
+    const patterns = [
+        /"videoUrl"\s*:\s*"([^"]+)"/g,
+        /data-video-url\s*=\s*["']([^"']+)["']/g,
+    ];
+    for (const p of patterns) {
+        let m;
+        while ((m = p.exec(html)) !== null) {
+            const u = cleanUrl(m[1]);
+            if (u.startsWith('http') && !u.includes('.jpg') && !u.includes('.png') && !urls.includes(u)) {
+                urls.push(u);
+            }
+        }
+    }
+
+    const qualities = urls.map((u, i) => {
+        const qMatch = u.match(/(\d+p)/i);
+        const q = qMatch ? parseInt(qMatch[1]) : 0;
+        return { quality: q, label: q >= 720 ? 'HD' : 'SD', url: u, format: 'MP4', id: i };
+    });
+
+    return { title, thumbnail: thumb, qualities };
+}
+
+function extractRedtube(html) {
+    const titleMatch = html.match(/<title>([^<]+)<\/title>/);
+    const title = titleMatch ? titleMatch[1].replace(/ - RedTube\.com/i, '').trim() : '';
+    const thumbMatch = html.match(/"thumbnailUrl"\s*:\s*"([^"]+)"/);
+    const thumb = thumbMatch ? cleanUrl(thumbMatch[1]) : '';
+
+    const urls = [];
+    const patterns = [
+        /"video_url"\s*:\s*"([^"]+)"/g,
+        /video_url\s*[=:]\s*["']([^"']+)["']/g,
+    ];
+    for (const p of patterns) {
+        let m;
+        while ((m = p.exec(html)) !== null) {
+            const u = cleanUrl(m[1]);
+            if (u.startsWith('http') && !u.includes('.jpg') && !u.includes('.png') && !urls.includes(u)) {
+                urls.push(u);
+            }
+        }
+    }
+
+    const qualities = urls.map((u, i) => {
+        const qMatch = u.match(/(\d+p)/i);
+        const q = qMatch ? parseInt(qMatch[1]) : 0;
+        return { quality: q, label: q >= 720 ? 'HD' : 'SD', url: u, format: 'MP4', id: i };
+    });
+
+    return { title, thumbnail: thumb, qualities };
+}
+
+function extractGeneric(html) {
+    const titleMatch = html.match(/<title>([^<]+)<\/title>/);
+    const title = titleMatch ? titleMatch[1].trim() : '';
+    const thumbMatch = html.match(/"thumbnailUrl"\s*:\s*"([^"]+)"/) || html.match(/"og:image"\s+content="([^"]+)"/);
+    const thumb = thumbMatch ? cleanUrl(thumbMatch[1]) : '';
+
+    const urls = [];
+    const patterns = [
+        /"video_url"\s*:\s*"([^"]+)"/g,
+        /"videoUrl"\s*:\s*"([^"]+)"/g,
+        /video_url\s*[=:]\s*["']([^"']+)["']/g,
+    ];
+    for (const p of patterns) {
+        let m;
+        while ((m = p.exec(html)) !== null) {
+            const u = cleanUrl(m[1]);
+            if (u.startsWith('http') && !u.includes('.jpg') && !u.includes('.png') && !urls.includes(u)) {
+                urls.push(u);
+            }
+        }
+    }
+
+    const qualities = urls.map((u, i) => {
+        const qMatch = u.match(/(\d+p)/i);
+        const q = qMatch ? parseInt(qMatch[1]) : 0;
+        return { quality: q, label: q >= 720 ? 'HD' : 'SD', url: u, format: 'MP4', id: i };
+    });
+
+    return { title, thumbnail: thumb, qualities };
+}
+
+function getExtractor(url) {
+    if (url.includes('pornhub')) return extractPornhub;
+    if (url.includes('xvideos')) return extractXvideos;
+    if (url.includes('xnxx')) return extractXnxx;
+    if (url.includes('xhamster')) return extractXhamster;
+    if (url.includes('redtube')) return extractRedtube;
+    return extractGeneric;
+}
+
+async function resolveM3u8(masterUrl) {
+    const resp = await fetch(masterUrl, {
+        headers: { ...HEADERS, 'Referer': 'https://www.pornhub.com/' },
+    });
+    const text = await resp.text();
+    const lines = text.split('\n').filter(l => l.trim());
+
+    if (lines.length < 2) return null;
+
+    const variantLines = [];
+    for (let i = 0; i < lines.length; i++) {
+        if (lines[i].startsWith('#EXT-X-STREAM-INF:')) {
+            const nextLine = lines[i + 1];
+            if (nextLine && !nextLine.startsWith('#')) {
+                const bwMatch = lines[i].match(/BANDWIDTH=(\d+)/);
+                const resMatch = lines[i].match(/RESOLUTION=(\d+)x(\d+)/);
+                let variantUrl = nextLine;
+                if (!variantUrl.startsWith('http')) {
+                    const base = masterUrl.substring(0, masterUrl.lastIndexOf('/') + 1);
+                    variantUrl = base + nextLine;
+                }
+                variantLines.push({
+                    bandwidth: bwMatch ? parseInt(bwMatch[1]) : 0,
+                    width: resMatch ? parseInt(resMatch[1]) : 0,
+                    height: resMatch ? parseInt(resMatch[2]) : 0,
+                    url: variantUrl,
+                });
+            }
+        }
+    }
+
+    if (variantLines.length === 0) {
+        if (text.includes('#EXTINF') || text.includes('#EXT-X-MAP')) {
+            const baseUrl = masterUrl.substring(0, masterUrl.lastIndexOf('/') + 1);
+            const segmentUrls = [];
+            for (const line of lines) {
+                if (!line.startsWith('#') && line.trim()) {
+                    let segUrl = line;
+                    if (!segUrl.startsWith('http')) segUrl = baseUrl + segUrl;
+                    segmentUrls.push(segUrl);
+                }
+            }
+            return { segments: segmentUrls, totalSegments: segmentUrls.length };
+        }
+        return null;
+    }
+
+    variantLines.sort((a, b) => b.height - a.height);
+
+    const variantResp = await fetch(variantLines[0].url, {
+        headers: { ...HEADERS, 'Referer': 'https://www.pornhub.com/' },
+    });
+    const variantText = await variantResp.text();
+    const vLines = variantText.split('\n').filter(l => l.trim());
+    const baseUrl = variantLines[0].url.substring(0, variantLines[0].url.lastIndexOf('/') + 1);
+    const segments = [];
+
+    for (const line of vLines) {
+        if (!line.startsWith('#') && line.trim()) {
+            let segUrl = line;
+            if (!segUrl.startsWith('http')) segUrl = baseUrl + segUrl;
+            segments.push(segUrl);
+        }
+    }
+
+    return {
+        segments,
+        totalSegments: segments.length,
+        quality: variantLines[0].height,
+    };
 }
 
 export default {
@@ -304,7 +330,7 @@ export default {
 
         if (url.pathname === '/api/sites') {
             return jsonResponse({
-                sites: ['pornhub', 'xvideos', 'xnxx', 'xhamster', 'redtube', 'youporn', 'spankwire', 'beeg', 'eporner', 'daftsex', 'sxyprn', 'hclips', 'txxx', 'camwhores'],
+                sites: ['pornhub', 'xvideos', 'xnxx', 'xhamster', 'redtube'],
             });
         }
 
@@ -314,15 +340,10 @@ export default {
                 const videoUrl = body.url;
                 if (!videoUrl) return jsonResponse({ error: 'URL required' }, 400);
 
-                const extractor = getSiteExtractor(videoUrl);
+                const extractor = getExtractor(videoUrl);
 
                 const pageResponse = await fetch(videoUrl, {
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                        'Accept-Language': 'en-US,en;q=0.5',
-                        'Referer': 'https://www.google.com/',
-                    },
+                    headers: { ...HEADERS, 'Referer': 'https://www.google.com/' },
                     redirect: 'follow',
                 });
 
@@ -331,50 +352,42 @@ export default {
                 }
 
                 const html = await pageResponse.text();
-                const result = extractor.extract(html);
+                const result = extractor(html);
 
-                if (result.urls.length === 0) {
-                    return jsonResponse({ error: 'No video sources found. This site may use JavaScript-based loading.' }, 404);
+                if (result.qualities.length === 0) {
+                    return jsonResponse({ error: 'No video sources found. This site may require JavaScript.' }, 404);
                 }
 
-                const wanted = [1080, 720, 360, 240, 144];
                 const formats = [];
+                const wanted = [1080, 720, 480, 360, 240, 144];
                 const usedQualities = new Set();
 
-                for (const rawUrl of result.urls) {
-                    if (rawUrl.includes('.m3u8') || rawUrl.includes('.m3u8?')) continue;
-
-                    const q = classifyQuality(rawUrl);
-                    const height = parseInt(q.quality) || 0;
-
-                    if (height > 0 && wanted.includes(height) && !usedQualities.has(height)) {
-                        usedQualities.add(height);
+                for (const q of result.qualities) {
+                    const h = q.quality;
+                    if (h > 0 && wanted.includes(h) && !usedQualities.has(h)) {
+                        usedQualities.add(h);
                         formats.push({
                             id: formats.length,
-                            quality: q.quality,
+                            quality: h + 'p',
                             label: q.label,
-                            format: 'MP4',
-                            url: rawUrl,
+                            format: q.format || 'MP4',
+                            m3u8: q.m3u8 || null,
+                            url: q.url || null,
                         });
                     }
                 }
 
                 if (formats.length === 0) {
-                    const seen = new Set();
-                    for (const rawUrl of result.urls) {
-                        if (rawUrl.includes('.m3u8') || rawUrl.includes('.m3u8?')) continue;
-                        if (!rawUrl.includes('.mp4') && !rawUrl.includes('.webm') && !rawUrl.includes('.avi')) continue;
-
-                        const q = classifyQuality(rawUrl);
-                        const h = parseInt(q.quality) || 0;
-                        if (!seen.has(rawUrl)) {
-                            seen.add(rawUrl);
+                    for (const q of result.qualities) {
+                        if (!usedQualities.has(q.quality)) {
+                            usedQualities.add(q.quality);
                             formats.push({
                                 id: formats.length,
-                                quality: h > 0 ? h + 'p' : 'Original',
+                                quality: q.quality > 0 ? q.quality + 'p' : 'Original',
                                 label: q.label,
-                                format: 'MP4',
-                                url: rawUrl,
+                                format: q.format || 'MP4',
+                                m3u8: q.m3u8 || null,
+                                url: q.url || null,
                             });
                         }
                     }
@@ -393,22 +406,36 @@ export default {
                     title: result.title || 'Unknown Video',
                     thumbnail: result.thumbnail,
                     originalUrl: videoUrl,
-                    uploader: '',
-                    duration: 0,
-                    formats: formats.slice(0, 10).map(f => ({
-                        id: f.id,
-                        quality: f.quality,
-                        label: f.label,
-                        format: 'MP4',
-                        url: f.url,
-                    })),
+                    formats: formats.slice(0, 10),
                 });
             } catch (err) {
                 return jsonResponse({ error: err.message || 'Analysis failed' }, 500);
             }
         }
 
-        if (url.pathname.startsWith('/api/proxy') && request.method === 'GET') {
+        if (url.pathname === '/api/segments' && request.method === 'POST') {
+            try {
+                const body = await request.json();
+                const m3u8Url = body.m3u8;
+                if (!m3u8Url) return jsonResponse({ error: 'm3u8 URL required' }, 400);
+
+                const result = await resolveM3u8(m3u8Url);
+                if (!result || !result.segments || result.segments.length === 0) {
+                    return jsonResponse({ error: 'No segments found in m3u8' }, 404);
+                }
+
+                return jsonResponse({
+                    success: true,
+                    segments: result.segments,
+                    totalSegments: result.totalSegments,
+                    quality: result.quality || 0,
+                });
+            } catch (err) {
+                return jsonResponse({ error: err.message || 'Segment resolution failed' }, 500);
+            }
+        }
+
+        if (url.pathname === '/api/proxy' && request.method === 'GET') {
             try {
                 const targetUrl = url.searchParams.get('url');
                 if (!targetUrl) return jsonResponse({ error: 'URL param required' }, 400);
@@ -416,12 +443,12 @@ export default {
                 const resp = await fetch(decodeURIComponent(targetUrl), {
                     headers: {
                         'User-Agent': 'Mozilla/5.0',
-                        'Referer': 'https://www.google.com/',
+                        'Referer': 'https://www.pornhub.com/',
                     },
                     redirect: 'follow',
                 });
 
-                const contentType = resp.headers.get('content-type') || 'image/jpeg';
+                const contentType = resp.headers.get('content-type') || 'application/octet-stream';
                 const newHeaders = new Headers({
                     'Content-Type': contentType,
                     'Cache-Control': 'public, max-age=86400',
@@ -434,11 +461,61 @@ export default {
             }
         }
 
+        if (url.pathname === '/api/proxy-segments' && request.method === 'POST') {
+            try {
+                const body = await request.json();
+                const segments = body.segments;
+                if (!segments || !Array.isArray(segments) || segments.length === 0) {
+                    return jsonResponse({ error: 'segments array required' }, 400);
+                }
+
+                const maxSegments = 500;
+                const segs = segments.slice(0, maxSegments);
+
+                const reader = {
+                    index: 0,
+                    segments: segs,
+                };
+
+                const stream = new ReadableStream({
+                    async pull(controller) {
+                        if (reader.index >= reader.segments.length) {
+                            controller.close();
+                            return;
+                        }
+                        try {
+                            const resp = await fetch(reader.segments[reader.index], {
+                                headers: {
+                                    'User-Agent': 'Mozilla/5.0',
+                                    'Referer': 'https://www.pornhub.com/',
+                                },
+                            });
+                            const buffer = await resp.arrayBuffer();
+                            controller.enqueue(new Uint8Array(buffer));
+                        } catch (e) {
+                            // skip failed segment
+                        }
+                        reader.index++;
+                    },
+                });
+
+                return new Response(stream, {
+                    status: 200,
+                    headers: {
+                        'Content-Type': 'video/mp2t',
+                        'Transfer-Encoding': 'chunked',
+                        ...CORS,
+                    },
+                });
+            } catch (err) {
+                return jsonResponse({ error: err.message || 'Segment proxy failed' }, 500);
+            }
+        }
+
         if (url.pathname === '/api/download' && request.method === 'GET') {
             try {
                 const targetUrl = url.searchParams.get('url');
                 if (!targetUrl) return jsonResponse({ error: 'url param required' }, 400);
-
                 return Response.redirect(decodeURIComponent(targetUrl), 302);
             } catch {
                 return jsonResponse({ error: 'Download failed' }, 500);

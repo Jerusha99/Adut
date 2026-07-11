@@ -128,7 +128,7 @@ const App = {
         const list = document.getElementById('formatList');
         list.innerHTML = '';
         data.formats.forEach((format, idx) => {
-            const badgeClass = this.getBadgeClass(format.quality);
+            const badgeClass = this.getBadgeClass(format);
             const size = format.filesize ? this.fmtSize(format.filesize) : '';
             const item = document.createElement('div');
             item.className = 'format-item';
@@ -152,8 +152,9 @@ const App = {
         this.updateStats();
     },
 
-    getBadgeClass(quality) {
-        const h = parseInt(quality);
+    getBadgeClass(format) {
+        if (format.format === 'HLS') return 'hls';
+        const h = parseInt(format.quality);
         if (h >= 1080) return 'fhd';
         if (h >= 720) return 'hd';
         if (h >= 360) return 'sd';
@@ -227,32 +228,121 @@ const App = {
         setTimeout(() => { this.adWatched = false; }, 60000);
     },
 
-    startDownload() {
+    async startDownload() {
         if (!this.pendingDownloadId || this.pendingFormatId === null) return;
 
         const format = this.currentData.formats.find(f => f.id === this.pendingFormatId);
         if (!format) return;
 
-        this.showToast(`Downloading ${format.quality} MP4...`, 'info');
         this.stats.downloads++;
         localStorage.setItem('vg_downloads', this.stats.downloads);
         this.updateStats();
 
-        const videoUrl = format.url;
-        if (videoUrl) {
+        if (format.m3u8) {
+            await this.downloadHls(format);
+        } else if (format.url) {
             const link = document.createElement('a');
-            link.href = videoUrl;
+            link.href = format.url;
             link.target = '_blank';
             link.rel = 'noopener noreferrer';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            this.showToast(`Downloading ${format.quality}...`, 'info');
+        } else {
+            this.showToast('No download source found', 'error');
         }
 
         this.pendingDownloadId = null;
         this.pendingFormatId = null;
-
         this.showNativeAd();
+    },
+
+    async downloadHls(format) {
+        const progressEl = document.getElementById('dlProgress');
+        const progressFill = document.getElementById('dlProgressFill');
+        const progressText = document.getElementById('dlProgressText');
+        if (progressEl) progressEl.style.display = 'block';
+
+        try {
+            this.showToast(`Resolving ${format.quality} streams...`, 'info');
+            if (progressText) progressText.textContent = 'Resolving streams...';
+            if (progressFill) progressFill.style.width = '5%';
+
+            const segResp = await fetch(this.apiBase() + '/api/segments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ m3u8: format.m3u8 }),
+            });
+            const segData = await segResp.json();
+            if (!segResp.ok || !segData.segments) throw new Error(segData.error || 'Failed to resolve streams');
+
+            const segments = segData.segments;
+            const total = segments.length;
+            this.showToast(`Downloading ${total} segments...`, 'info');
+            if (progressText) progressText.textContent = `0/${total} segments`;
+            if (progressFill) progressFill.style.width = '10%';
+
+            const concurrency = 5;
+            const chunks = new Array(total);
+            let completed = 0;
+            let nextIdx = 0;
+
+            const worker = async () => {
+                while (nextIdx < total) {
+                    const idx = nextIdx++;
+                    try {
+                        const proxyUrl = this.apiBase() + '/api/proxy?url=' + encodeURIComponent(segments[idx]);
+                        const resp = await fetch(proxyUrl);
+                        if (resp.ok) {
+                            const ab = await resp.arrayBuffer();
+                            chunks[idx] = new Uint8Array(ab);
+                        }
+                    } catch (e) {}
+                    completed++;
+                    const pct = 10 + Math.floor((completed / total) * 85);
+                    if (progressFill) progressFill.style.width = pct + '%';
+                    if (progressText) progressText.textContent = `${completed}/${total} segments`;
+                }
+            };
+
+            const workers = [];
+            for (let i = 0; i < concurrency; i++) workers.push(worker());
+            await Promise.all(workers);
+
+            if (progressFill) progressFill.style.width = '98%';
+            if (progressText) progressText.textContent = 'Combining segments...';
+
+            const validChunks = chunks.filter(c => c);
+            const totalSize = validChunks.reduce((s, c) => s + c.length, 0);
+            const combined = new Uint8Array(totalSize);
+            let offset = 0;
+            for (const chunk of validChunks) {
+                combined.set(chunk, offset);
+                offset += chunk.length;
+            }
+
+            const blob = new Blob([combined], { type: 'video/mp4' });
+            const blobUrl = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = (this.currentData.title || 'video').replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 80) + '_' + format.quality + '.mp4';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+
+            const sizeMB = (totalSize / (1024 * 1024)).toFixed(1);
+            this.showToast(`${format.quality} downloaded! (${sizeMB} MB)`, 'success');
+            if (progressFill) progressFill.style.width = '100%';
+            if (progressText) progressText.textContent = `Done! ${sizeMB} MB`;
+            setTimeout(() => { if (progressEl) progressEl.style.display = 'none'; }, 3000);
+        } catch (err) {
+            this.showToast('Download failed: ' + err.message, 'error');
+            if (progressEl) progressEl.style.display = 'none';
+        }
     },
 
     showNativeAd() {

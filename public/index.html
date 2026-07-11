@@ -139,8 +139,17 @@
                         <div class="card-header">
                             <div class="card-icon cyan">&#9776;</div>
                             <div>
-                                <div class="card-title">MP4 Quality Options</div>
+                                <div class="card-title">Quality Options</div>
                                 <div class="card-subtitle" id="statusBadge" style="color:var(--text-muted)">Waiting...</div>
+                            </div>
+                        </div>
+                        <div id="dlProgress" class="dl-progress" style="display:none;">
+                            <div class="dl-progress-header">
+                                <span class="dl-progress-title">Downloading...</span>
+                                <span class="dl-progress-text" id="dlProgressText">0%</span>
+                            </div>
+                            <div class="dl-progress-bar">
+                                <div class="dl-progress-fill" id="dlProgressFill" style="width:0%"></div>
                             </div>
                         </div>
                         <div class="format-list" id="formatList">
@@ -169,7 +178,7 @@
                         </div>
                         <div class="stat-row">
                             <span class="stat-label">Format</span>
-                            <span class="stat-value">MP4 Only</span>
+                            <span class="stat-value">MP4 / Stream</span>
                         </div>
                         <div class="rewarded-info">
                             <div class="rewarded-icon">&#127942;</div>
