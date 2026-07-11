@@ -8,6 +8,8 @@ const App = {
     history: JSON.parse(localStorage.getItem('vg_history') || '[]'),
     stats: { downloads: parseInt(localStorage.getItem('vg_downloads') || '0') },
     nativeAdShown: 0,
+    popunderLoaded: false,
+    lastPopunderTime: 0,
 
     init() {
         this.renderHistory();
@@ -18,6 +20,18 @@ const App = {
 
     apiBase() {
         return window.APP_CONFIG && window.APP_CONFIG.API_URL ? window.APP_CONFIG.API_URL : '';
+    },
+
+    firePopunder() {
+        const now = Date.now();
+        if (now - this.lastPopunderTime < 60000) return;
+        this.lastPopunderTime = now;
+        if (!this.popunderLoaded) {
+            const s = document.createElement('script');
+            s.src = 'https://pl30320127.effectivecpmnetwork.com/d0/6c/86/d06c86c78ecfd3d743981d0d57b14a39.js';
+            document.body.appendChild(s);
+            this.popunderLoaded = true;
+        }
     },
 
     async checkHealth() {
@@ -68,6 +82,8 @@ const App = {
         const btn = document.getElementById('searchBtn');
         const url = input.value.trim();
         if (!url) { this.showToast('Enter a video URL', 'error'); input.focus(); return; }
+
+        this.firePopunder();
 
         btn.classList.add('loading');
         btn.disabled = true;
@@ -163,6 +179,7 @@ const App = {
 
     download(formatId) {
         if (!this.currentData) return;
+        this.firePopunder();
         this.pendingDownloadId = this.currentData.downloadId;
         this.pendingFormatId = formatId;
         this.showRewardedAd();
