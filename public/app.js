@@ -25,11 +25,12 @@ const App = {
             const r = await fetch(this.apiBase() + '/api/health');
             if (r.ok) {
                 const d = await r.json();
-                if (d.ytdlp) this.setStatus('System Ready', 'var(--success)');
-                else this.setStatus('yt-dlp not found', 'var(--danger)');
+                this.setStatus('System Ready', 'var(--success)');
+            } else {
+                this.setStatus('API Error', 'var(--danger)');
             }
         } catch {
-            this.setStatus('Server offline', 'var(--danger)');
+            this.setStatus('API Offline', 'var(--danger)');
         }
     },
 
@@ -237,16 +238,16 @@ const App = {
         localStorage.setItem('vg_downloads', this.stats.downloads);
         this.updateStats();
 
-        const safeName = this.currentData.title.replace(/[^a-zA-Z0-9\s\-_]/g, '').substring(0, 80) || 'video';
-        const filename = `${safeName}_${format.quality}.mp4`;
-        const downloadUrl = `${this.apiBase()}/api/download?url=${encodeURIComponent(format.url)}&filename=${encodeURIComponent(filename)}`;
-
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const videoUrl = format.url;
+        if (videoUrl) {
+            const link = document.createElement('a');
+            link.href = videoUrl;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
 
         this.pendingDownloadId = null;
         this.pendingFormatId = null;
