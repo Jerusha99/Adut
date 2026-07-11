@@ -1,12 +1,5 @@
 const SITES = {
     pornhub: {
-        patterns: [
-            /"video_url"\s*:\s*"([^"]+)"/g,
-            /"videoUrl"\s*:\s*"([^"]+)"/g,
-            /flashvars_\w+\s*=\s*\{[^}]*"video_url"\s*:\s*"([^"]+)"/g,
-            /https?:\/\/[^"'\s]*\.mp4[^"'\s]*/g,
-            /https?:\/\/[^"'\s]*\.m3u8[^"'\s]*/g,
-        ],
         extract: (html) => {
             const urls = [];
             const titleMatch = html.match(/<title>([^<]+)<\/title>/);
@@ -14,23 +7,86 @@ const SITES = {
             const thumbMatch = html.match(/"thumbnailUrl"\s*:\s*"([^"]+)"/) || html.match(/"image_url"\s*:\s*"([^"]+)"/);
             const thumb = thumbMatch ? thumbMatch[1] : '';
 
-            const patterns = [
-                /"video_url"\s*:\s*"([^"]+)"/g,
-                /"videoUrl"\s*:\s*"([^"]+)"/g,
-                /video_url\s*=\s*["']([^"']+)["']/g,
-                /https?:\/\/[^"'\s\\]*cdn[^"'\s\\]*\.mp4[^"'\s\\]*/g,
-                /https?:\/\/[^"'\s\\]*phncdn[^"'\s\\]*\.mp4[^"'\s\\]*/g,
+            const isThumbnail = (u) => {
+                const lower = u.toLowerCase();
+                return lower.includes('/rs:fit:') || lower.includes('/plain/') ||
+                       lower.includes('/rs:fill:') || lower.includes('/rs:w:') ||
+                       lower.includes('/rs:h:') || lower.includes('.jpg') ||
+                       lower.includes('.png') || lower.includes('.gif') ||
+                       lower.includes('.webp') || lower.includes('thumbnail') ||
+                       lower.includes('/thumb') || lower.includes('/poster') ||
+                       lower.includes('vts:401') || lower.includes('vts:2000');
+            };
+
+            // Method 1: flashvars with video_url
+            const flashvarsMatch = html.match(/var\s+flashvars\s*=\s*\{([^}]+)\}/);
+            if (flashvarsMatch) {
+                const fv = flashvarsMatch[1];
+                const vu = fv.match(/"video_url"\s*:\s*"([^"]+)"/);
+                if (vu) {
+                    let u = vu[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/\\x2F/g, '/');
+                    if (!isThumbnail(u)) urls.push(u);
+                }
+                const vut = fv.match(/"video_url_text"\s*:\s*"([^"]+)"/);
+                if (vut) {
+                    let u = vut[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/\\x2F/g, '/');
+                    if (!isThumbnail(u)) urls.push(u);
+                }
+                const vu720 = fv.match(/"video_url_720p"\s*:\s*"([^"]+)"/);
+                if (vu720) {
+                    let u = vu720[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/\\x2F/g, '/');
+                    if (!isThumbnail(u)) urls.push(u);
+                }
+                const vu480 = fv.match(/"video_url_480p"\s*:\s*"([^"]+)"/);
+                if (vu480) {
+                    let u = vu480[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/\\x2F/g, '/');
+                    if (!isThumbnail(u)) urls.push(u);
+                }
+                const vu240 = fv.match(/"video_url_240p"\s*:\s*"([^"]+)"/);
+                if (vu240) {
+                    let u = vu240[1].replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/\\x2F/g, '/');
+                    if (!isThumbnail(u)) urls.push(u);
+                }
+            }
+
+            // Method 2: Direct script patterns
+            const scriptPatterns = [
+                /flashvars\s*\[["']video_url["']\]\s*=\s*["']([^"']+)["']/g,
+                /flashvars\s*\[["']video_url_text["']\]\s*=\s*["']([^"']+)["']/g,
+                /video_url\s*[=:]\s*["']([^"']+\.mp4[^"']*)["']/gi,
+                /video_url\s*[=:]\s*["']([^"']+\.mp4[^"']*)["']/gi,
             ];
 
-            for (const p of patterns) {
+            for (const p of scriptPatterns) {
                 let m;
                 while ((m = p.exec(html)) !== null) {
-                    let u = (m[1] || m[0]).replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/\\x2F/g, '/');
-                    if (u.startsWith('http') && !u.includes('.jpg') && !u.includes('.png') && !u.includes('.gif')) {
-                        if (!urls.includes(u)) urls.push(u);
+                    let u = (m[1]).replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/\\x2F/g, '/');
+                    if (!isThumbnail(u) && u.startsWith('http') && !urls.includes(u)) {
+                        urls.push(u);
                     }
                 }
             }
+
+            // Method 3: Find phncdn CDN mp4 URLs (actual videos, NOT thumbnails)
+            const cdnPattern = /https?:\/\/[a-z0-9\-]+\.phncdn\.com\/[^"'\s\\]*\.mp4[^"'\s\\]*/gi;
+            let cm;
+            while ((cm = cdnPattern.exec(html)) !== null) {
+                let u = cm[0].replace(/\\\//g, '/').replace(/\\x2F/g, '/');
+                if (!isThumbnail(u) && !urls.includes(u)) {
+                    urls.push(u);
+                }
+            }
+
+            // Method 4: Find ew-cf/ew-ncf pornhub CDN video URLs
+            const phCdnPattern = /https?:\/\/(?:ew-cf|ew-ncf|ci|dl)\.pornhub\.com\/[^"'\s\\]*\.mp4[^"'\s\\]*/gi;
+            let pm;
+            while ((pm = phCdnPattern.exec(html)) !== null) {
+                let u = pm[0].replace(/\\\//g, '/');
+                if (!isThumbnail(u) && !urls.includes(u)) {
+                    urls.push(u);
+                }
+            }
+
             return { title, thumbnail: thumb, urls };
         },
     },
@@ -42,19 +98,26 @@ const SITES = {
             const thumbMatch = html.match(/"thumbnailUrl"\s*:\s*"([^"]+)"/);
             const thumb = thumbMatch ? thumbMatch[1] : '';
 
+            const isThumbnail = (u) => {
+                const lower = u.toLowerCase();
+                return lower.includes('.jpg') || lower.includes('.png') ||
+                       lower.includes('.gif') || lower.includes('.webp') ||
+                       lower.includes('thumbnail') || lower.includes('/thumb');
+            };
+
             const patterns = [
                 /setVideoUrl\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
                 /html5player\.setVideoUrl\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
-                /https?:\/\/[^"'\s\\]*\.mp4[^"'\s\\]*/g,
                 /video_url\s*[=:]\s*["']([^"']+)["']/g,
+                /setVideoTitle\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
             ];
 
             for (const p of patterns) {
                 let m;
                 while ((m = p.exec(html)) !== null) {
-                    let u = (m[1] || m[0]).replace(/\\u002F/g, '/').replace(/\\\//g, '/');
-                    if (u.startsWith('http') && !u.includes('.jpg') && !u.includes('.png')) {
-                        if (!urls.includes(u)) urls.push(u);
+                    let u = (m[1]).replace(/\\u002F/g, '/').replace(/\\\//g, '/');
+                    if (!isThumbnail(u) && u.startsWith('http') && !urls.includes(u)) {
+                        urls.push(u);
                     }
                 }
             }
@@ -69,19 +132,25 @@ const SITES = {
             const thumbMatch = html.match(/"thumbnailUrl"\s*:\s*"([^"]+)"/);
             const thumb = thumbMatch ? thumbMatch[1] : '';
 
+            const isThumbnail = (u) => {
+                const lower = u.toLowerCase();
+                return lower.includes('.jpg') || lower.includes('.png') ||
+                       lower.includes('.gif') || lower.includes('.webp') ||
+                       lower.includes('thumbnail') || lower.includes('/thumb');
+            };
+
             const patterns = [
                 /setVideoUrl\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
                 /html5player\.setVideoUrl\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
-                /https?:\/\/[^"'\s\\]*\.mp4[^"'\s\\]*/g,
                 /video_url\s*[=:]\s*["']([^"']+)["']/g,
             ];
 
             for (const p of patterns) {
                 let m;
                 while ((m = p.exec(html)) !== null) {
-                    let u = (m[1] || m[0]).replace(/\\u002F/g, '/').replace(/\\\//g, '/');
-                    if (u.startsWith('http') && !u.includes('.jpg') && !u.includes('.png')) {
-                        if (!urls.includes(u)) urls.push(u);
+                    let u = (m[1]).replace(/\\u002F/g, '/').replace(/\\\//g, '/');
+                    if (!isThumbnail(u) && u.startsWith('http') && !urls.includes(u)) {
+                        urls.push(u);
                     }
                 }
             }
@@ -96,19 +165,24 @@ const SITES = {
             const thumbMatch = html.match(/"thumbnailUrl"\s*:\s*"([^"]+)"/);
             const thumb = thumbMatch ? thumbMatch[1] : '';
 
+            const isThumbnail = (u) => {
+                const lower = u.toLowerCase();
+                return lower.includes('.jpg') || lower.includes('.png') ||
+                       lower.includes('.gif') || lower.includes('.webp') ||
+                       lower.includes('thumbnail') || lower.includes('/thumb');
+            };
+
             const patterns = [
                 /"videoUrl"\s*:\s*"([^"]+)"/g,
-                /https?:\/\/[^"'\s\\]*\.mp4[^"'\s\\]*/g,
-                /https?:\/\/[^"'\s\\]*\.m3u8[^"'\s\\]*/g,
                 /data-video-url\s*=\s*["']([^"']+)["']/g,
             ];
 
             for (const p of patterns) {
                 let m;
                 while ((m = p.exec(html)) !== null) {
-                    let u = (m[1] || m[0]).replace(/\\u002F/g, '/').replace(/\\\//g, '/');
-                    if (u.startsWith('http') && !u.includes('.jpg') && !u.includes('.png')) {
-                        if (!urls.includes(u)) urls.push(u);
+                    let u = (m[1]).replace(/\\u002F/g, '/').replace(/\\\//g, '/');
+                    if (!isThumbnail(u) && u.startsWith('http') && !urls.includes(u)) {
+                        urls.push(u);
                     }
                 }
             }
@@ -123,19 +197,24 @@ const SITES = {
             const thumbMatch = html.match(/"thumbnailUrl"\s*:\s*"([^"]+)"/);
             const thumb = thumbMatch ? thumbMatch[1] : '';
 
+            const isThumbnail = (u) => {
+                const lower = u.toLowerCase();
+                return lower.includes('.jpg') || lower.includes('.png') ||
+                       lower.includes('.gif') || lower.includes('.webp') ||
+                       lower.includes('thumbnail');
+            };
+
             const patterns = [
                 /"video_url"\s*:\s*"([^"]+)"/g,
-                /https?:\/\/[^"'\s\\]*\.mp4[^"'\s\\]*/g,
-                /https?:\/\/[^"'\s\\]*\.m3u8[^"'\s\\]*/g,
                 /video_url\s*[=:]\s*["']([^"']+)["']/g,
             ];
 
             for (const p of patterns) {
                 let m;
                 while ((m = p.exec(html)) !== null) {
-                    let u = (m[1] || m[0]).replace(/\\u002F/g, '/').replace(/\\\//g, '/');
-                    if (u.startsWith('http') && !u.includes('.jpg') && !u.includes('.png')) {
-                        if (!urls.includes(u)) urls.push(u);
+                    let u = (m[1]).replace(/\\u002F/g, '/').replace(/\\\//g, '/');
+                    if (!isThumbnail(u) && u.startsWith('http') && !urls.includes(u)) {
+                        urls.push(u);
                     }
                 }
             }
@@ -150,21 +229,26 @@ const SITES = {
             const thumbMatch = html.match(/"thumbnailUrl"\s*:\s*"([^"]+)"/) || html.match(/"og:image"\s*content="([^"]+)"/);
             const thumb = thumbMatch ? thumbMatch[1] : '';
 
+            const isThumbnail = (u) => {
+                const lower = u.toLowerCase();
+                return lower.includes('.jpg') || lower.includes('.png') ||
+                       lower.includes('.gif') || lower.includes('.webp') ||
+                       lower.includes('thumbnail') || lower.includes('/thumb') ||
+                       lower.includes('/rs:fit:');
+            };
+
             const patterns = [
                 /"video_url"\s*:\s*"([^"]+)"/g,
                 /"videoUrl"\s*:\s*"([^"]+)"/g,
                 /video_url\s*[=:]\s*["']([^"']+)["']/g,
-                /https?:\/\/[^"'\s\\]*\.mp4[^"'\s\\]*/g,
-                /https?:\/\/[^"'\s\\]*\.m3u8[^"'\s\\]*/g,
-                /https?:\/\/[^"'\s\\]*\.webm[^"'\s\\]*/g,
             ];
 
             for (const p of patterns) {
                 let m;
                 while ((m = p.exec(html)) !== null) {
-                    let u = (m[1] || m[0]).replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/\\x2F/g, '/');
-                    if (u.startsWith('http') && !u.includes('.jpg') && !u.includes('.png') && !u.includes('.gif') && !u.includes('.svg')) {
-                        if (!urls.includes(u)) urls.push(u);
+                    let u = (m[1]).replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/\\x2F/g, '/');
+                    if (!isThumbnail(u) && u.startsWith('http') && !urls.includes(u)) {
+                        urls.push(u);
                     }
                 }
             }
