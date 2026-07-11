@@ -372,3 +372,289 @@ body {
     .formats-section { grid-column: 1; grid-row: auto; }
     .actions-section { grid-column: 1; grid-row: auto; }
 }
+
+/* ========== AD BANNER STYLES ========== */
+.ad-banner {
+    text-align: center;
+    margin: 16px 0;
+    animation: fadeInUp 0.6s ease-out;
+}
+.ad-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+.ad-container {
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    background: var(--bg-glass);
+    display: inline-block;
+    max-width: 100%;
+    transition: var(--transition);
+}
+.ad-container:hover {
+    border-color: var(--border-glow);
+}
+.ad-top { margin-top: 12px; }
+.ad-middle { margin: 32px 0; }
+.ad-bottom { margin-top: 40px; }
+
+/* ========== REWARDED AD MODAL ========== */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease-out;
+    padding: 20px;
+}
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+.modal-content {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    max-width: 640px;
+    width: 100%;
+    overflow: hidden;
+    animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: var(--shadow-lg);
+}
+@keyframes modalSlideIn {
+    from { opacity: 0; transform: scale(0.9) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-header {
+    text-align: center;
+    padding: 24px 24px 16px;
+}
+.modal-icon {
+    font-size: 40px;
+    margin-bottom: 8px;
+}
+.modal-header h3 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+.modal-header p {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+.ad-player {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #000;
+    overflow: hidden;
+}
+.ad-video-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    z-index: 2;
+    transition: opacity 0.5s ease;
+}
+.ad-video-placeholder.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+.ad-countdown {
+    font-size: 64px;
+    font-weight: 900;
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-family: 'JetBrains Mono', monospace;
+    animation: countPulse 1s ease-in-out infinite;
+}
+@keyframes countPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+.ad-countdown-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+}
+.ad-progress-bar {
+    width: 200px;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 16px;
+}
+.ad-progress-fill {
+    height: 100%;
+    background: var(--accent-gradient);
+    border-radius: 4px;
+    width: 0%;
+    transition: width 1s linear;
+}
+.ad-content-area {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+.ad-content-area a {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+.modal-footer {
+    padding: 16px 24px 24px;
+    text-align: center;
+}
+.modal-btn {
+    padding: 14px 48px;
+    background: var(--accent-gradient);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: var(--transition);
+    min-width: 200px;
+}
+.modal-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-color);
+}
+.modal-btn:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+}
+
+/* ========== NATIVE AD MODAL ========== */
+.native-modal {
+    max-width: 500px;
+    position: relative;
+}
+.modal-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    z-index: 10;
+}
+.modal-close:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+}
+.native-ad-content {
+    padding: 16px;
+}
+.native-ad-content img {
+    border-radius: var(--radius-sm);
+}
+
+/* ========== REWARDED INFO BOX ========== */
+.rewarded-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: var(--accent-glow);
+    border: 1px solid var(--border-glow);
+    border-radius: var(--radius-sm);
+    margin-top: 16px;
+}
+.rewarded-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+}
+.rewarded-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.rewarded-text strong {
+    font-size: 14px;
+    color: var(--accent);
+}
+.rewarded-text span {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* ========== AFFILIATE SECTION ========== */
+.affiliate-section {
+    grid-column: 1 / -1;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 24px;
+    backdrop-filter: blur(20px);
+}
+.affiliate-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+@media (max-width: 700px) {
+    .affiliate-grid { grid-template-columns: 1fr; }
+}
+.affiliate-card {
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    background: var(--bg-glass);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: var(--transition);
+}
+.affiliate-card:hover {
+    border-color: var(--border-glow);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(139, 92, 246, 0.2);
+}
+.affiliate-label {
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+}
+
+/* ========== AD DISPLAY TOGGLE ========== */
+.ad-hidden { display: none !important; }
+
+/* ========== MODAL HELPERS ========== */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 9998;
+}

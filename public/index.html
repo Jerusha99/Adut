@@ -33,15 +33,26 @@
                 </div>
             </div>
             <div class="nav-actions">
-                <button class="btn-icon" title="Clear history" onclick="localStorage.clear(); location.reload();">&#8635;</button>
+                <button class="btn-icon" title="Clear" onclick="localStorage.clear(); location.reload();">&#8635;</button>
             </div>
         </nav>
+
+        <!-- TOP BANNER AD -->
+        <div class="ad-banner ad-top" id="adTopBanner">
+            <div class="ad-label">Advertisement</div>
+            <div class="ad-container" id="bannerTop">
+                <!-- Replace ZONE_ID with your ExoClick banner zone ID -->
+                <a href="https://www.exoclick.com" target="_blank" rel="noopener">
+                    <img src="https://placehold.co/728x90/1a1a2e/8b5cf6?text=Your+Ad+Here+-+728x90" alt="Ad" style="max-width:100%; height:auto;">
+                </a>
+            </div>
+        </div>
 
         <main class="main-content">
             <section class="hero">
                 <div class="hero-badge">System Online</div>
                 <h1>Download <span class="gradient">Any Video</span><br>In Seconds</h1>
-                <p>Paste a video URL, pick your quality, and download. Powered by yt-dlp supporting 1000+ sites.</p>
+                <p>Paste a video URL, pick your quality, and download. Watch a short ad to unlock downloads.</p>
             </section>
 
             <section class="search-section">
@@ -73,6 +84,16 @@
                 </div>
             </section>
 
+            <!-- MIDDLE BANNER AD -->
+            <div class="ad-banner ad-middle" id="adMiddleBanner" style="display:none;">
+                <div class="ad-label">Sponsored</div>
+                <div class="ad-container" id="bannerMiddle">
+                    <a href="https://www.exoclick.com" target="_blank" rel="noopener">
+                        <img src="https://placehold.co/468x60/1a1a2e/ec4899?text=Your+Ad+Here+-+468x60" alt="Ad" style="max-width:100%; height:auto;">
+                    </a>
+                </div>
+            </div>
+
             <section id="dashboard" class="dashboard">
                 <div class="dash-grid">
                     <div class="card preview-section preview-card">
@@ -102,6 +123,16 @@
                             </div>
                             <div class="video-url-display" id="videoUrl">-</div>
                         </div>
+
+                        <!-- SIDEBAR AD INSIDE PREVIEW CARD -->
+                        <div class="ad-banner ad-sidebar" style="margin-top:16px;">
+                            <div class="ad-label">Sponsored</div>
+                            <div class="ad-container">
+                                <a href="https://www.exoclick.com" target="_blank" rel="noopener">
+                                    <img src="https://placehold.co/300x250/1a1a2e/06b6d4?text=Your+Ad+Here+-+300x250" alt="Ad" style="max-width:100%; height:auto;">
+                                </a>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="card formats-section">
@@ -125,7 +156,7 @@
                             <div class="card-icon green">&#8595;</div>
                             <div>
                                 <div class="card-title">Download Info</div>
-                                <div class="card-subtitle">Session statistics</div>
+                                <div class="card-subtitle">Watch ad to unlock</div>
                             </div>
                         </div>
                         <div class="stat-row">
@@ -140,9 +171,37 @@
                             <span class="stat-label">Format</span>
                             <span class="stat-value">MP4 Only</span>
                         </div>
-                        <div class="stat-row">
-                            <span class="stat-label">Qualities</span>
-                            <span class="stat-value">144p - 1080p</span>
+                        <div class="rewarded-info">
+                            <div class="rewarded-icon">&#127942;</div>
+                            <div class="rewarded-text">
+                                <strong>Free Downloads</strong>
+                                <span>Watch a short ad to unlock each download. It supports us to keep the service free.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AFFILIATE BANNERS -->
+                    <div class="affiliate-section">
+                        <div class="card-header" style="margin-bottom:16px;">
+                            <div class="card-icon pink">&#10084;</div>
+                            <div>
+                                <div class="card-title">Recommended For You</div>
+                                <div class="card-subtitle">Premium partner sites</div>
+                            </div>
+                        </div>
+                        <div class="affiliate-grid">
+                            <a href="https://www.chaturbate.com/in/?track=default&c_=landing_page_5" target="_blank" rel="noopener" class="affiliate-card" id="aff1">
+                                <img src="https://placehold.co/300x200/1a1a2e/ff6b9d?text=Live+Cams" alt="Live Cams" style="width:100%;height:140px;object-fit:cover;border-radius:8px;">
+                                <span class="affiliate-label">Live Cams - Chat Now</span>
+                            </a>
+                            <a href="https://www.livejasmin.com/?ref=8026538&clickurl=//www.livejasmin.com/webcamModelGalleryPage.html" target="_blank" rel="noopener" class="affiliate-card" id="aff2">
+                                <img src="https://placehold.co/300x200/1a1a2e/8b5cf6?text=Premium+Cams" alt="Premium" style="width:100%;height:140px;object-fit:cover;border-radius:8px;">
+                                <span class="affiliate-label">Premium Live Shows</span>
+                            </a>
+                            <a href="https://www.flirt4free.com/?s=1&a=113435" target="_blank" rel="noopener" class="affiliate-card" id="aff3">
+                                <img src="https://placehold.co/300x200/1a1a2e/06b6d4?text=Dating+Site" alt="Dating" style="width:100%;height:140px;object-fit:cover;border-radius:8px;">
+                                <span class="affiliate-label">Find Local Dates</span>
+                            </a>
                         </div>
                     </div>
 
@@ -163,7 +222,60 @@
                     </div>
                 </div>
             </section>
+
+            <!-- BOTTOM BANNER AD -->
+            <div class="ad-banner ad-bottom" id="adBottomBanner" style="margin-top:40px;">
+                <div class="ad-label">Advertisement</div>
+                <div class="ad-container" id="bannerBottom">
+                    <a href="https://www.exoclick.com" target="_blank" rel="noopener">
+                        <img src="https://placehold.co/728x90/1a1a2e/10b981?text=Your+Ad+Here+-+728x90" alt="Ad" style="max-width:100%; height:auto;">
+                    </a>
+                </div>
+            </div>
         </main>
+    </div>
+
+    <!-- REWARDED AD MODAL -->
+    <div id="rewardedModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content rewarded-modal">
+            <div class="modal-header">
+                <div class="modal-icon">&#127942;</div>
+                <h3>Watch Ad to Download</h3>
+                <p>Watch a short ad (5 seconds) to unlock your download. This keeps the service free.</p>
+            </div>
+            <div class="ad-player" id="adPlayer">
+                <div class="ad-video-placeholder" id="adVideoPlaceholder">
+                    <div class="ad-countdown" id="adCountdown">5</div>
+                    <div class="ad-countdown-label">Your download starts in...</div>
+                    <div class="ad-progress-bar">
+                        <div class="ad-progress-fill" id="adProgressFill"></div>
+                    </div>
+                </div>
+                <!-- Affiliate ad content shown here -->
+                <div class="ad-content-area" id="adContentArea">
+                    <a href="https://www.chaturbate.com/in/?track=default&c_=landing_page_5" target="_blank" rel="noopener" id="adLink">
+                        <img src="https://placehold.co/640x360/1a1a2e/ff6b9d?text=Watch+This+Ad+for+5+Seconds" alt="Ad" id="adImage" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">
+                    </a>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" id="adSkipBtn" disabled>
+                    <span id="adSkipText">Skip in <span id="adSkipTimer">5</span>s</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NATIVE AD MODAL (shown periodically) -->
+    <div id="nativeAdModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content native-modal">
+            <button class="modal-close" id="nativeAdClose">&times;</button>
+            <div class="native-ad-content" id="nativeAdContent">
+                <a href="https://www.livejasmin.com/?ref=8026538&clickurl=//www.livejasmin.com/webcamModelGalleryPage.html" target="_blank" rel="noopener">
+                    <img src="https://placehold.co/500x300/1a1a2e/8b5cf6?text=Premium+Content+-+Click+Here" alt="Ad" style="width:100%;height:auto;border-radius:12px;">
+                </a>
+            </div>
+        </div>
     </div>
 
     <div class="toast-container" id="toastContainer"></div>
