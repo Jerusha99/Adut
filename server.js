@@ -20,6 +20,46 @@ if (fs.existsSync(publicPath)) {
 
 const downloads = new Map();
 
+const GOOGLE_SHEET_WEBHOOK = process.env.GOOGLE_SHEET_WEBHOOK || 'https://script.google.com/macros/s/AKfycbxwi4nUs-ak3a762iPjHWL0SuWcqUWm5vSZDJx67itRtilgvIb7EFRlPKBNl4SuD43Ecw/exec';
+
+function parseDevice(ua) {
+    if (/mobile|android|iphone|ipad/i.test(ua)) {
+        if (/ipad/i.test(ua)) return 'iPad';
+        if (/iphone/i.test(ua)) return 'iPhone';
+        if (/android/i.test(ua)) return 'Android';
+        return 'Mobile';
+    }
+    return 'Desktop';
+}
+
+function parseBrowser(ua) {
+    if (/edg/i.test(ua)) return 'Edge';
+    if (/chrome/i.test(ua) && !/edg/i.test(ua)) return 'Chrome';
+    if (/firefox/i.test(ua)) return 'Firefox';
+    if (/safari/i.test(ua) && !/chrome/i.test(ua)) return 'Safari';
+    return 'Other';
+}
+
+function parseOS(ua) {
+    if (/windows/i.test(ua)) return 'Windows';
+    if (/mac os/i.test(ua)) return 'macOS';
+    if (/linux/i.test(ua)) return 'Linux';
+    if (/android/i.test(ua)) return 'Android';
+    if (/iphone|ipad/i.test(ua)) return 'iOS';
+    return 'Unknown';
+}
+
+async function logToSheet(data) {
+    try {
+        await fetch(GOOGLE_SHEET_WEBHOOK, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+            redirect: 'follow',
+        });
+    } catch (e) {}
+}
+
 function findPythonYtDlp() {
     const commands = ['python', 'python3', 'py'];
     for (const cmd of commands) {
@@ -65,6 +105,33 @@ app.get('/', (req, res) => {
 
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', ytdlp: !!PYTHON, timestamp: Date.now() });
+});
+
+app.post('/api/log-download', (req, res) => {
+    try {
+        const ua = req.headers['user-agent'] || 'Unknown';
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown';
+        const now = new Date();
+        const row = {
+            timestamp: now.toISOString(),
+            date: now.toLocaleDateString('en-US'),
+            time: now.toLocaleTimeString('en-US'),
+            title: req.body.title || 'Unknown',
+            url: req.body.url || '',
+            quality: req.body.quality || '',
+            format: req.body.format || '',
+            device: parseDevice(ua),
+            browser: parseBrowser(ua),
+            os: parseOS(ua),
+            ip: ip,
+            uploader: req.body.uploader || '',
+            duration: req.body.duration || '',
+        };
+        logToSheet(row);
+        res.json({ success: true });
+    } catch (e) {
+        res.json({ success: true });
+    }
 });
 
 app.post('/api/analyze', async (req, res) => {

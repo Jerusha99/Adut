@@ -3,6 +3,46 @@ function json(data, status = 200) { return new Response(JSON.stringify(data), { 
 function clean(u) { return u.replace(/\\u002F/g, '/').replace(/\\\//g, '/').replace(/\\x2F/g, '/'); }
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
+const GOOGLE_SHEET_WEBHOOK = 'https://script.google.com/macros/s/AKfycbxwi4nUs-ak3a762iPjHWL0SuWcqUWm5vSZDJx67itRtilgvIb7EFRlPKBNl4SuD43Ecw/exec';
+
+function parseDevice(ua) {
+    if (/mobile|android|iphone|ipad/i.test(ua)) {
+        if (/ipad/i.test(ua)) return 'iPad';
+        if (/iphone/i.test(ua)) return 'iPhone';
+        if (/android/i.test(ua)) return 'Android';
+        return 'Mobile';
+    }
+    return 'Desktop';
+}
+
+function parseBrowser(ua) {
+    if (/edg/i.test(ua)) return 'Edge';
+    if (/chrome/i.test(ua) && !/edg/i.test(ua)) return 'Chrome';
+    if (/firefox/i.test(ua)) return 'Firefox';
+    if (/safari/i.test(ua) && !/chrome/i.test(ua)) return 'Safari';
+    return 'Other';
+}
+
+function parseOS(ua) {
+    if (/windows/i.test(ua)) return 'Windows';
+    if (/mac os/i.test(ua)) return 'macOS';
+    if (/linux/i.test(ua)) return 'Linux';
+    if (/android/i.test(ua)) return 'Android';
+    if (/iphone|ipad/i.test(ua)) return 'iOS';
+    return 'Unknown';
+}
+
+async function logToSheet(data) {
+    try {
+        await fetch(GOOGLE_SHEET_WEBHOOK, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+    } catch (e) {}
+}
+
 function parsePage(html, url) {
     const title = (html.match(/<title>([^<]+)<\/title>/) || [])[1] || '';
     const thumb = (html.match(/"thumbnailUrl"\s*:\s*"([^"]+)"/) || html.match(/"image_url"\s*:\s*"([^"]+)"/) || [])[1] || '';
@@ -103,6 +143,32 @@ export default {
                 if (result.formats.length === 0) return json({ error: 'No video sources found' }, 404);
                 return json({ success: true, downloadId: crypto.randomUUID(), title: result.title || 'Unknown Video', thumbnail: result.thumbnail, originalUrl: videoUrl, formats: result.formats.slice(0, 10) });
             } catch (e) { return json({ error: e.message || 'Failed' }, 500); }
+        }
+
+        if (url.pathname === '/api/log-download' && request.method === 'POST') {
+            try {
+                const body = await request.json();
+                const ip = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'Unknown';
+                const ua = request.headers.get('user-agent') || 'Unknown';
+                const now = new Date();
+                const row = {
+                    timestamp: now.toISOString(),
+                    date: now.toLocaleDateString('en-US'),
+                    time: now.toLocaleTimeString('en-US'),
+                    title: body.title || 'Unknown',
+                    url: body.url || '',
+                    quality: body.quality || '',
+                    format: body.format || '',
+                    device: parseDevice(ua),
+                    browser: parseBrowser(ua),
+                    os: parseOS(ua),
+                    ip: ip,
+                    uploader: body.uploader || '',
+                    duration: body.duration || '',
+                };
+                logToSheet(row);
+                return json({ success: true });
+            } catch (e) { return json({ error: 'Failed' }, 500); }
         }
 
         if (url.pathname === '/api/segments' && request.method === 'POST') {

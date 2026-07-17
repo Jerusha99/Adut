@@ -331,6 +331,8 @@ const App = {
         localStorage.setItem('vg_downloads', this.stats.downloads);
         this.updateStats();
 
+        this.logDownload(format);
+
         if (format.m3u8) {
             await this.downloadHls(format);
         } else if (format.url) {
@@ -349,6 +351,23 @@ const App = {
         this.pendingDownloadId = null;
         this.pendingFormatId = null;
         this.showNativeAd();
+    },
+
+    logDownload(format) {
+        try {
+            fetch(this.apiBase() + '/api/log-download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: this.currentData.title || 'Unknown',
+                    url: this.currentData.originalUrl || '',
+                    quality: format.quality || '',
+                    format: format.format || '',
+                    uploader: this.currentData.uploader || '',
+                    duration: this.currentData.duration || '',
+                }),
+            });
+        } catch (e) {}
     },
 
     async downloadHls(format) {
